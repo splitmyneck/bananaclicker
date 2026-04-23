@@ -3,197 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banana Clicker Extreme</title>
+    <title>Banana God: Evolution</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #fef9c3;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-            user-select: none;
-        }
+        :root { --yellow: #facc15; --gold: #fbbf24; --brown: #713f12; --bg: #111827; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; user-select: none; }
+        
+        #game-wrapper { display: flex; width: 900px; height: 600px; background: #1f2937; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; border: 1px solid #374151; }
+        
+        /* Секция кликера */
+        .main-zone { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #374151 0%, #111827 100%); position: relative; border-right: 1px solid #374151; }
+        #banana { font-size: 140px; cursor: pointer; transition: transform 0.1s; filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.2)); }
+        #banana:active { transform: scale(0.85); }
+        
+        /* Панель информации */
+        .stats-top { position: absolute; top: 20px; text-align: center; width: 100%; }
+        .currency { font-size: 42px; font-weight: 900; color: var(--yellow); text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        
+        /* Боковая панель (Табы) */
+        .side-panel { width: 400px; display: flex; flex-direction: column; }
+        .tabs { display: flex; background: #111827; }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: none; color: #9ca3af; cursor: pointer; font-weight: bold; }
+        .tab-btn.active { color: var(--yellow); border-bottom: 2px solid var(--yellow); background: #1f2937; }
+        
+        .tab-content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
+        .tab-content.active { display: block; }
 
-        #game-container {
-            text-align: center;
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            width: 350px;
-        }
+        /* Элементы магазина */
+        .item { background: #374151; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .item:hover { background: #4b5563; }
+        .item-info b { display: block; color: var(--yellow); }
+        .item-info small { color: #d1d5db; }
+        .buy-btn { background: var(--yellow); color: var(--brown); border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .buy-btn:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; }
 
-        #banana {
-            width: 200px;
-            cursor: pointer;
-            transition: transform 0.1s ease;
-            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
-        }
-
-        #banana:active {
-            transform: scale(0.9);
-        }
-
-        .stats {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 20px 0;
-            color: #854d0e;
-        }
-
-        .shop {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        button {
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
-            background-color: #facc15;
-            color: #854d0e;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        button:hover:not(:disabled) {
-            background-color: #eab308;
-        }
-
-        button:disabled {
-            background-color: #e5e7eb;
-            color: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        /* Анимация вылетающих цифр */
-        .click-anim {
-            position: absolute;
-            color: #ca8a04;
-            font-weight: bold;
-            pointer-events: none;
-            animation: floatUp 0.8s ease-out forwards;
-        }
-
-        @keyframes floatUp {
-            0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-100px); opacity: 0; }
-        }
+        /* Эффекты */
+        .floating-text { position: absolute; font-weight: 900; pointer-events: none; animation: flyUp 0.8s forwards; z-index: 10; }
+        @keyframes flyUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px) scale(1.5); } }
+        
+        /* Специальный бонус: Перерождение */
+        .prestige-box { background: linear-gradient(45deg, #7c3aed, #2563eb); padding: 20px; border-radius: 15px; text-align: center; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <h1>Banana Clicker 🍌</h1>
-    <div class="stats">
-        Бананы: <span id="count">0</span><br>
-        <small style="font-size: 14px;">В сек: <span id="bps">0</span></small>
+<div id="game-wrapper">
+    <div class="main-zone">
+        <div class="stats-top">
+            <div id="rank-text" style="color: #9ca3af; text-transform: uppercase; letter-spacing: 2px; font-size: 12px;">Обычный смертный</div>
+            <div class="currency"><span id="bananas">0</span> 🍌</div>
+            <div style="color: #10b981;">в сек: <span id="bps">0</span></div>
+        </div>
+        
+        <div id="banana">🍌</div>
+        
+        <div id="event-box" style="position: absolute; bottom: 40px; color: var(--gold); font-weight: bold; min-height: 20px;"></div>
     </div>
 
-    <!-- Текстовый эмодзи банана вместо картинки для мгновенного запуска -->
-    <div id="banana" style="font-size: 120px;">🍌</div>
+    <div class="side-panel">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('shop')">Магазин</button>
+            <button class="tab-btn" onclick="openTab('relics')">Реликвии</button>
+            <button class="tab-btn" onclick="openTab('prestige')">Вознесение</button>
+        </div>
 
-    <div class="shop">
-        <button id="upgrade-click">Сила клика (+1) | Цена: <span id="click-price">10</span></button>
-        <button id="buy-auto">Обезьянка (Автокликер) | Цена: <span id="auto-price">50</span></button>
-        <button id="reset-game" style="background: #fecaca; color: #b91c1c; margin-top: 10px;">Сбросить прогресс</button>
+        <!-- Магазин -->
+        <div id="shop" class="tab-content active">
+            <div class="item">
+                <div class="item-info"><b>Усиленный клик</b><small>Сила: +<span id="cp-val">1</span></small></div>
+                <button class="buy-btn" id="b-click" onclick="buy('click')">💰 <span id="c-click">15</span></button>
+            </div>
+            <div class="item">
+                <div class="item-info"><b>Обезьяна-раб</b><small>+1/сек</small></div>
+                <button class="buy-btn" id="b-auto1" onclick="buy('auto1')">💰 <span id="c-auto1">50</span></button>
+            </div>
+            <div class="item">
+                <div class="item-info"><b>Банановый завод</b><small>+15/сек</small></div>
+                <button class="buy-btn" id="b-auto15" onclick="buy('auto15')">💰 <span id="c-auto15">500</span></button>
+            </div>
+        </div>
+
+        <!-- Реликвии -->
+        <div id="relics" class="tab-content">
+            <p style="font-size: 13px; color: #9ca3af;">Артефакты дают пассивные бонусы навсегда.</p>
+            <div class="item">
+                <div class="item-info"><b>Золотая кожура</b><small>Шанс крита клика 5%</small></div>
+                <button class="buy-btn" id="b-crit" onclick="buyRelic('crit', 2000)">💰 2000</button>
+            </div>
+            <div class="item">
+                <div class="item-info"><b>Древний росток</b><small>Автокликеры на 20% дешевле</small></div>
+                <button class="buy-btn" id="b-sale" onclick="buyRelic('sale', 5000)">💰 5000</button>
+            </div>
+        </div>
+
+        <!-- Престиж -->
+        <div id="prestige" class="tab-content">
+            <div class="prestige-box">
+                <h3>Уровень Бога: <span id="god-lvl">0</span></h3>
+                <p>Вознесение сбросит ваш прогресс, но даст +50% к общему доходу навсегда.</p>
+                <button class="buy-btn" id="b-prestige" onclick="ascend()" style="background: white; width: 100%;">ВОЗНЕСТИСЬ</button>
+                <small id="prestige-req" style="display:block; margin-top:10px;">Нужно: 100,000 🍌</small>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // Состояние игры
-    let state = {
+    let g = {
         bananas: 0,
-        clickValue: 1,
-        autoValue: 0,
-        clickUpgradeCost: 10,
-        autoUpgradeCost: 50
+        total: 0,
+        click: 1,
+        bps: 0,
+        prestigeMul: 1,
+        godLvl: 0,
+        relics: { crit: false, sale: false },
+        costs: { click: 15, auto1: 50, auto15: 500 }
     };
 
-    // Загрузка сохранения
-    const saved = localStorage.getItem('bananaSave');
-    if (saved) state = JSON.parse(saved);
-
-    const countEl = document.getElementById('count');
-    const bpsEl = document.getElementById('bps');
-    const banana = document.getElementById('banana');
-    
-    function updateUI() {
-        countEl.textContent = Math.floor(state.bananas);
-        bpsEl.textContent = state.autoValue;
-        document.getElementById('click-price').textContent = state.clickUpgradeCost;
-        document.getElementById('auto-price').textContent = state.autoUpgradeCost;
-        
-        document.getElementById('upgrade-click').disabled = state.bananas < state.clickUpgradeCost;
-        document.getElementById('buy-auto').disabled = state.bananas < state.autoUpgradeCost;
+    // Табы
+    function openTab(name) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(name).classList.add('active');
+        event.target.classList.add('active');
     }
 
-    // Клик по банану
-    banana.addEventListener('mousedown', (e) => {
-        state.bananas += state.clickValue;
-        createClickAnim(e.clientX, e.clientY, `+${state.clickValue}`);
-        updateUI();
+    // Логика клика
+    document.getElementById('banana').onmousedown = (e) => {
+        let isCrit = g.relics.crit && Math.random() < 0.1;
+        let amount = g.click * g.prestigeMul * (isCrit ? 5 : 1);
+        
+        g.bananas += amount;
+        g.total += amount;
+        
+        showText(e.clientX, e.clientY, (isCrit ? 'CRIT! ' : '+') + Math.floor(amount), isCrit ? '#f87171' : '#facc15');
+        update();
+    };
+
+    function buy(type) {
+        if (g.bananas >= g.costs[type]) {
+            g.bananas -= g.costs[type];
+            if (type === 'click') { g.click++; g.costs.click = Math.ceil(g.costs.click * 1.5); }
+            if (type === 'auto1') { g.bps += 1; g.costs.auto1 = Math.ceil(g.costs.auto1 * 1.3); }
+            if (type === 'auto15') { g.bps += 15; g.costs.auto15 = Math.ceil(g.costs.auto15 * 1.4); }
+            update();
+        }
+    }
+
+    function buyRelic(name, cost) {
+        if (g.bananas >= cost && !g.relics[name]) {
+            g.bananas -= cost;
+            g.relics[name] = true;
+            document.getElementById('b-'+name).innerText = "КУПЛЕНО";
+            document.getElementById('b-'+name).disabled = true;
+            update();
+        }
+    }
+
+    function ascend() {
+        if (g.bananas >= 100000) {
+            g.godLvl++;
+            g.prestigeMul += 0.5;
+            // Сброс
+            g.bananas = 0;
+            g.bps = 0;
+            g.click = 1;
+            g.costs = { click: 15, auto1: 50, auto15: 500 };
+            alert("Вы вознеслись! Ваша мощь выросла!");
+            update();
+        }
+    }
+
+    function update() {
+        document.getElementById('bananas').innerText = Math.floor(g.bananas).toLocaleString();
+        document.getElementById('bps').innerText = (g.bps * g.prestigeMul).toFixed(1);
+        document.getElementById('god-lvl').innerText = g.godLvl;
+        document.getElementById('cp-val').innerText = g.click;
+        
+        // Цены
+        document.getElementById('c-click').innerText = g.costs.click;
+        document.getElementById('c-auto1').innerText = g.costs.auto1;
+        document.getElementById('c-auto15').innerText = g.costs.auto15;
+
+        // Блокировка
+        document.getElementById('b-click').disabled = g.bananas < g.costs.click;
+        document.getElementById('b-auto1').disabled = g.bananas < g.costs.auto1;
+        document.getElementById('b-auto15').disabled = g.bananas < g.costs.auto15;
+        document.getElementById('b-prestige').disabled = g.bananas < 100000;
+
+        // Ранги
+        const ranks = ["Смертный", "Любитель бананов", "Банановый маг", "Полубог", "Властелин джунглей"];
+        document.getElementById('rank-text').innerText = ranks[Math.min(g.godLvl, 4)];
+        
         save();
-    });
+    }
 
-    // Покупка улучшений
-    document.getElementById('upgrade-click').addEventListener('click', () => {
-        if (state.bananas >= state.clickUpgradeCost) {
-            state.bananas -= state.clickUpgradeCost;
-            state.clickValue += 1;
-            state.clickUpgradeCost = Math.floor(state.clickUpgradeCost * 1.5);
-            updateUI();
-        }
-    });
-
-    document.getElementById('buy-auto').addEventListener('click', () => {
-        if (state.bananas >= state.autoUpgradeCost) {
-            state.bananas -= state.autoUpgradeCost;
-            state.autoValue += 1;
-            state.autoUpgradeCost = Math.floor(state.autoUpgradeCost * 1.8);
-            updateUI();
-        }
-    });
-
-    // Автокликер (раз в секунду)
-    setInterval(() => {
-        if (state.autoValue > 0) {
-            state.bananas += state.autoValue;
-            updateUI();
-            save();
-        }
-    }, 1000);
-
-    // Визуальный эффект клика
-    function createClickAnim(x, y, text) {
+    function showText(x, y, text, color) {
         const el = document.createElement('div');
-        el.className = 'click-anim';
-        el.style.left = `${x}px`;
-        el.style.top = `${y}px`;
-        el.textContent = text;
+        el.className = 'floating-text';
+        el.style.left = x + 'px'; el.style.top = y + 'px';
+        el.style.color = color;
+        el.innerText = text;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 800);
     }
 
-    function save() {
-        localStorage.setItem('bananaSave', JSON.stringify(state));
-    }
-
-    document.getElementById('reset-game').onclick = () => {
-        if(confirm('Сбросить всё?')) {
-            localStorage.clear();
-            location.reload();
+    // Случайные события
+    setInterval(() => {
+        if (Math.random() > 0.8) {
+            const events = [
+                { t: "Банановый дождь! +100 бананов", a: 100 },
+                { t: "Обезьяны украли бананы! -50", a: -50 },
+                { t: "Солнечный день! Доход x2 на миг", a: 0 }
+            ];
+            const ev = events[Math.floor(Math.random()*events.length)];
+            document.getElementById('event-box').innerText = ev.t;
+            g.bananas = Math.max(0, g.bananas + ev.a);
+            setTimeout(() => document.getElementById('event-box').innerText = "", 3000);
         }
-    };
+    }, 10000);
 
-    updateUI();
+    // Автоклик
+    setInterval(() => {
+        if (g.bps > 0) {
+            g.bananas += (g.bps * g.prestigeMul) / 10;
+            update();
+        }
+    }, 100);
+
+    function save() { localStorage.setItem('bananaEvolutionSave', JSON.stringify(g)); }
+    const saved = localStorage.getItem('bananaEvolutionSave');
+    if (saved) { g = JSON.parse(saved); update(); }
 </script>
 
 </body>
