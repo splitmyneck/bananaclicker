@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banana Clicker Extreme</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #fef9c3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 350px;
+        }
+
+        #banana {
+            width: 200px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+        }
+
+        #banana:active {
+            transform: scale(0.9);
+        }
+
+        .stats {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #854d0e;
+        }
+
+        .shop {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            background-color: #facc15;
+            color: #854d0e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #eab308;
+        }
+
+        button:disabled {
+            background-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        /* Анимация вылетающих цифр */
+        .click-anim {
+            position: absolute;
+            color: #ca8a04;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>Banana Clicker 🍌</h1>
+    <div class="stats">
+        Бананы: <span id="count">0</span><br>
+        <small style="font-size: 14px;">В сек: <span id="bps">0</span></small>
+    </div>
+
+    <!-- Текстовый эмодзи банана вместо картинки для мгновенного запуска -->
+    <div id="banana" style="font-size: 120px;">🍌</div>
+
+    <div class="shop">
+        <button id="upgrade-click">Сила клика (+1) | Цена: <span id="click-price">10</span></button>
+        <button id="buy-auto">Обезьянка (Автокликер) | Цена: <span id="auto-price">50</span></button>
+        <button id="reset-game" style="background: #fecaca; color: #b91c1c; margin-top: 10px;">Сбросить прогресс</button>
+    </div>
+</div>
+
+<script>
+    // Состояние игры
+    let state = {
+        bananas: 0,
+        clickValue: 1,
+        autoValue: 0,
+        clickUpgradeCost: 10,
+        autoUpgradeCost: 50
+    };
+
+    // Загрузка сохранения
+    const saved = localStorage.getItem('bananaSave');
+    if (saved) state = JSON.parse(saved);
+
+    const countEl = document.getElementById('count');
+    const bpsEl = document.getElementById('bps');
+    const banana = document.getElementById('banana');
+    
+    function updateUI() {
+        countEl.textContent = Math.floor(state.bananas);
+        bpsEl.textContent = state.autoValue;
+        document.getElementById('click-price').textContent = state.clickUpgradeCost;
+        document.getElementById('auto-price').textContent = state.autoUpgradeCost;
+        
+        document.getElementById('upgrade-click').disabled = state.bananas < state.clickUpgradeCost;
+        document.getElementById('buy-auto').disabled = state.bananas < state.autoUpgradeCost;
+    }
+
+    // Клик по банану
+    banana.addEventListener('mousedown', (e) => {
+        state.bananas += state.clickValue;
+        createClickAnim(e.clientX, e.clientY, `+${state.clickValue}`);
+        updateUI();
+        save();
+    });
+
+    // Покупка улучшений
+    document.getElementById('upgrade-click').addEventListener('click', () => {
+        if (state.bananas >= state.clickUpgradeCost) {
+            state.bananas -= state.clickUpgradeCost;
+            state.clickValue += 1;
+            state.clickUpgradeCost = Math.floor(state.clickUpgradeCost * 1.5);
+            updateUI();
+        }
+    });
+
+    document.getElementById('buy-auto').addEventListener('click', () => {
+        if (state.bananas >= state.autoUpgradeCost) {
+            state.bananas -= state.autoUpgradeCost;
+            state.autoValue += 1;
+            state.autoUpgradeCost = Math.floor(state.autoUpgradeCost * 1.8);
+            updateUI();
+        }
+    });
+
+    // Автокликер (раз в секунду)
+    setInterval(() => {
+        if (state.autoValue > 0) {
+            state.bananas += state.autoValue;
+            updateUI();
+            save();
+        }
+    }, 1000);
+
+    // Визуальный эффект клика
+    function createClickAnim(x, y, text) {
+        const el = document.createElement('div');
+        el.className = 'click-anim';
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        el.textContent = text;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 800);
+    }
+
+    function save() {
+        localStorage.setItem('bananaSave', JSON.stringify(state));
+    }
+
+    document.getElementById('reset-game').onclick = () => {
+        if(confirm('Сбросить всё?')) {
+            localStorage.clear();
+            location.reload();
+        }
+    };
+
+    updateUI();
+</script>
+
+</body>
+</html>
