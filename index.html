@@ -3,196 +3,729 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banana God: Evolution</title>
+    <title>Watermelon God: Evolution</title>
     <style>
-        :root { --yellow: #facc15; --gold: #fbbf24; --brown: #713f12; --bg: #111827; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; user-select: none; }
+        :root { --rind: #22c55e; --flesh: #ef4444; --dark: #064e3b; --bg: #022c22; --crystal: #c084fc; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; overflow-x: hidden; user-select: none; }
         
-        #game-wrapper { display: flex; width: 900px; height: 600px; background: #1f2937; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; border: 1px solid #374151; }
+        #game-container { position: relative; display: flex; gap: 0; }
+        
+        #game-wrapper { display: flex; width: 100%; max-width: 1100px; height: 700px; background: #065f46; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; border: 2px solid #10b981; position: relative; }
         
         /* Секция кликера */
-        .main-zone { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #374151 0%, #111827 100%); position: relative; border-right: 1px solid #374151; }
-        #banana { font-size: 140px; cursor: pointer; transition: transform 0.1s; filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.2)); }
-        #banana:active { transform: scale(0.85); }
+        .main-zone { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #047857 0%, #022c22 100%); position: relative; border-right: 2px solid #10b981; }
+        #watermelon { font-size: clamp(80px, 15vw, 140px); cursor: pointer; transition: transform 0.1s; filter: drop-shadow(0 0 30px rgba(239, 68, 68, 0.4)); animation: pulse 2s infinite; }
+        #watermelon:active { transform: scale(0.85); }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        
+        /* Кнопка сброса */
+        .reset-btn { position: absolute; bottom: 20px; left: 20px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; padding: 10px 15px; border-radius: 12px; cursor: pointer; font-size: 13px; transition: 0.3s; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(5px); z-index: 5; }
+        .reset-btn:hover { background: rgba(239, 68, 68, 0.4); border-color: #ef4444; color: #fecaca; transform: scale(1.05); }
+        .reset-btn svg { width: 16px; height: 16px; }
+        
+        /* Модальное окно подтверждения */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-box { background: #1f2937; border: 2px solid #ef4444; border-radius: 20px; padding: 30px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.7); transform: scale(0.9); transition: transform 0.3s; }
+        .modal-overlay.active .modal-box { transform: scale(1); }
+        .modal-box h3 { color: #f87171; margin: 0 0 15px; font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .modal-box p { color: #d1d5db; margin: 0 0 20px; font-size: 14px; line-height: 1.5; }
+        .modal-box .warning-text { color: #fca5a5; font-size: 13px; margin-bottom: 20px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+        .modal-btn { padding: 12px 25px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; border: none; }
+        .modal-btn.cancel { background: #374151; color: white; }
+        .modal-btn.cancel:hover { background: #4b5563; }
+        .modal-btn.confirm { background: #ef4444; color: white; }
+        .modal-btn.confirm:hover { background: #dc2626; transform: scale(1.05); }
+        
+        /* Панель уведомлений справа */
+        .notification-container { position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 999; pointer-events: none; max-width: 350px; }
+        .notification { background: #1f2937; border: 2px solid #fbbf24; border-radius: 16px; padding: 16px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideInRight 0.4s ease, fadeOutRight 0.4s ease 2.6s forwards; pointer-events: all; min-width: 280px; }
+        .notification.prestige { border-color: #fbbf24; }
+        .notification.ascension { border-color: #c084fc; }
+        .notification.error { border-color: #ef4444; }
+        .notification h4 { margin: 0 0 8px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        .notification.prestige h4 { color: #fbbf24; }
+        .notification.ascension h4 { color: #c084fc; }
+        .notification.error h4 { color: #f87171; }
+        .notification p { margin: 0; font-size: 13px; color: #d1d5db; line-height: 1.4; }
+        .notification .highlight { color: #fbbf24; font-weight: bold; }
+        .notification.ascension .highlight { color: #c084fc; }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(120%); opacity: 0; }
+        }
         
         /* Панель информации */
-        .stats-top { position: absolute; top: 20px; text-align: center; width: 100%; }
-        .currency { font-size: 42px; font-weight: 900; color: var(--yellow); text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .stats-top { position: absolute; top: 15px; text-align: center; width: 100%; padding: 0 10px; }
+        .currency { font-size: clamp(24px, 5vw, 42px); font-weight: 900; color: #f87171; text-shadow: 0 4px 10px rgba(0,0,0,0.5); word-break: break-all; display: block; }
+        .crystal-currency { font-size: clamp(18px, 3vw, 28px); font-weight: 900; color: #c084fc; text-shadow: 0 0 15px rgba(192, 132, 252, 0.5); display: block; margin-top: 5px; }
+        .stat-row { display: flex; justify-content: center; gap: 30px; margin-top: 8px; font-size: clamp(11px, 1.3vw, 14px); color: #34d399; }
         
-        /* Боковая панель (Табы) */
-        .side-panel { width: 400px; display: flex; flex-direction: column; }
-        .tabs { display: flex; background: #111827; }
-        .tab-btn { flex: 1; padding: 15px; border: none; background: none; color: #9ca3af; cursor: pointer; font-weight: bold; }
-        .tab-btn.active { color: var(--yellow); border-bottom: 2px solid var(--yellow); background: #1f2937; }
+        /* Бейджи */
+        .badge-container { position: absolute; top: 15px; right: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .prestige-badge { background: linear-gradient(45deg, #fbbf24, #f59e0b); color: #7c2d12; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; box-shadow: 0 4px 15px rgba(251,191,36,0.3); text-align: center; }
+        .ascension-badge { background: linear-gradient(45deg, #c084fc, #8b5cf6); color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4); text-align: center; }
         
-        .tab-content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
+        /* Боковая панель */
+        .side-panel { width: 480px; display: flex; flex-direction: column; min-width: 340px; }
+        .tabs { display: flex; background: #022c22; overflow-x: auto; }
+        .tab-btn { flex: 1; padding: 12px 6px; border: none; background: none; color: #6ee7b7; cursor: pointer; font-weight: bold; font-size: clamp(10px, 1.1vw, 12px); transition: 0.2s; white-space: nowrap; min-width: fit-content; }
+        .tab-btn:hover { color: #f87171; }
+        .tab-btn.active { color: #f87171; border-bottom: 3px solid #f87171; background: #065f46; }
+        .tab-btn.ascension-tab.active { color: #c084fc; border-bottom: 3px solid #c084fc; }
+        
+        .tab-content { flex: 1; overflow-y: auto; padding: 15px; display: none; }
         .tab-content.active { display: block; }
 
-        /* Элементы магазина */
-        .item { background: #374151; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-        .item:hover { background: #4b5563; }
-        .item-info b { display: block; color: var(--yellow); }
-        .item-info small { color: #d1d5db; }
-        .buy-btn { background: var(--yellow); color: var(--brown); border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .buy-btn:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; }
+        .item { background: #047857; padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; border: 1px solid #10b981; gap: 10px; }
+        .item:hover { background: #059669; transform: translateX(3px); }
+        .item-info { flex: 1; min-width: 0; }
+        .item-info b { display: block; color: #fbbf24; font-size: clamp(13px, 1.4vw, 15px); }
+        .item-info small { color: #ffffff; font-size: clamp(10px, 1.1vw, 12px); }
+        
+        .buy-btn { background: #f87171; color: white; border: none; padding: 8px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; white-space: nowrap; font-size: clamp(10px, 1.1vw, 13px); min-width: 70px; }
+        .buy-btn:hover:not(:disabled) { background: #ef4444; transform: scale(1.05); }
+        .buy-btn:disabled { background: #374151; color: #9ca3af; cursor: not-allowed; transform: none; }
+        
+        .crystal-btn { background: linear-gradient(45deg, #8b5cf6, #7c3aed) !important; color: white !important; }
+        .crystal-btn:hover:not(:disabled) { background: linear-gradient(45deg, #7c3aed, #6d28d9) !important; transform: scale(1.05); }
+        
+        .prestige-btn { background: linear-gradient(45deg, #fbbf24, #f59e0b) !important; color: #7c2d12 !important; width: 100%; padding: 15px !important; font-size: 16px !important; }
+        .ascension-btn { background: linear-gradient(45deg, #c084fc, #8b5cf6) !important; color: white !important; width: 100%; padding: 15px !important; font-size: 16px !important; }
 
-        /* Эффекты */
-        .floating-text { position: absolute; font-weight: 900; pointer-events: none; animation: flyUp 0.8s forwards; z-index: 10; }
+        .floating-text { position: fixed; font-weight: 900; pointer-events: none; animation: flyUp 0.8s forwards; z-index: 1000; font-size: clamp(16px, 2vw, 24px); }
         @keyframes flyUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px) scale(1.5); } }
         
-        /* Специальный бонус: Перерождение */
-        .prestige-box { background: linear-gradient(45deg, #7c3aed, #2563eb); padding: 20px; border-radius: 15px; text-align: center; margin-top: 20px; }
+        .prestige-box { background: linear-gradient(45deg, #991b1b, #7f1d1d); padding: 20px; border-radius: 15px; text-align: center; margin-top: 10px; border: 2px solid #f87171; }
+        .ascension-box { background: linear-gradient(45deg, #4c1d95, #3b0764); padding: 20px; border-radius: 15px; text-align: center; margin-top: 10px; border: 2px solid #8b5cf6; }
+        
+        .prestige-info, .ascension-info { background: #047857; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: left; border: 1px solid #10b981; }
+        .ascension-info { background: #1e1b4b; border: 1px solid #8b5cf6; }
+        .prestige-info div, .ascension-info div { display: flex; justify-content: space-between; margin: 5px 0; font-size: 13px; }
+        
+        .bonus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .bonus-item { background: #047857; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #10b981; font-size: 12px; }
+        .bonus-item b { color: #fbbf24; display: block; font-size: 14px; }
+        .bonus-item small { color: #ffffff; font-size: 11px; }
+
+        .section-title { color: #6ee7b7; font-size: 13px; margin: 15px 0 10px; border-bottom: 1px solid #047857; padding-bottom: 5px; }
+        
+        @media (max-width: 768px) {
+            #game-wrapper { flex-direction: column; height: auto; min-height: 100vh; border-radius: 0; }
+            .main-zone { border-right: none; border-bottom: 2px solid #10b981; min-height: 45vh; }
+            .side-panel { width: 100%; min-width: 0; max-height: 55vh; }
+            .tab-content { max-height: calc(55vh - 50px); }
+            .bonus-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+            .badge-container { top: 10px; right: 5px; gap: 4px; }
+            .prestige-badge, .ascension-badge { font-size: 10px; padding: 4px 8px; }
+            .stat-row { gap: 15px; }
+            .reset-btn { bottom: 10px; left: 10px; padding: 8px 12px; font-size: 11px; }
+            .notification-container { top: 10px; right: 10px; left: 10px; max-width: none; }
+            .notification { min-width: auto; }
+        }
+        
+        .tab-content::-webkit-scrollbar { width: 6px; }
+        .tab-content::-webkit-scrollbar-track { background: #022c22; }
+        .tab-content::-webkit-scrollbar-thumb { background: #10b981; border-radius: 3px; }
+        
+        .progress-bar { width: 100%; height: 8px; background: #374151; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+        .progress-fill.gold { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+        .progress-fill.purple { background: linear-gradient(90deg, #c084fc, #8b5cf6); }
     </style>
 </head>
 <body>
 
+<!-- Контейнер для уведомлений -->
+<div class="notification-container" id="notification-container"></div>
+
+<!-- Модальное окно подтверждения сброса -->
+<div class="modal-overlay" id="reset-modal">
+    <div class="modal-box">
+        <h3>⚠️ Сброс прогресса</h3>
+        <p>Вы уверены, что хотите полностью сбросить <b>весь прогресс</b>?</p>
+        <div class="warning-text">
+            🔴 Это действие <b>необратимо</b>!<br>
+            Будут удалены: арбузы, кристаллы, престиж, вознесение, все улучшения и бонусы.
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-btn cancel" onclick="closeResetModal()">Отмена</button>
+            <button class="modal-btn confirm" onclick="confirmReset()">Сбросить всё</button>
+        </div>
+    </div>
+</div>
+
 <div id="game-wrapper">
     <div class="main-zone">
-        <div class="stats-top">
-            <div id="rank-text" style="color: #9ca3af; text-transform: uppercase; letter-spacing: 2px; font-size: 12px;">Обычный смертный</div>
-            <div class="currency"><span id="bananas">0</span> 🍌</div>
-            <div style="color: #10b981;">в сек: <span id="bps">0</span></div>
+        <div class="badge-container">
+            <div class="prestige-badge" id="prestige-badge">🌟 Престиж x1.0</div>
+            <div class="ascension-badge" id="ascension-badge">👑 Вознесение 0</div>
         </div>
         
-        <div id="banana">🍌</div>
+        <div class="stats-top">
+            <div class="currency"><span id="watermelons">0</span> 🍉</div>
+            <div class="crystal-currency"><span id="crystals">0</span> 💎 Кристаллов</div>
+            <div class="stat-row">
+                <span>⚡ в сек: <b id="bps">0</b></span>
+                <span>👆 за клик: <b id="cps">1</b></span>
+            </div>
+        </div>
         
-        <div id="event-box" style="position: absolute; bottom: 40px; color: var(--gold); font-weight: bold; min-height: 20px;"></div>
+        <div id="rank-text" style="position: absolute; bottom: 70px; color: #6ee7b7; text-transform: uppercase; letter-spacing: 2px; font-size: clamp(10px, 1.5vw, 12px);">Обычный садовод</div>
+        
+        <div id="watermelon">🍉</div>
+        
+        <!-- Кнопка сброса -->
+        <button class="reset-btn" onclick="openResetModal()" title="Сбросить весь прогресс">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            Сброс
+        </button>
+        
+        <div id="event-box" style="position: absolute; bottom: 20px; color: #fbbf24; font-weight: bold; min-height: 40px; text-shadow: 0 0 10px rgba(251,191,36,0.5); text-align: center; padding: 0 10px; font-size: clamp(12px, 1.5vw, 16px); right: 20px;"></div>
     </div>
 
     <div class="side-panel">
         <div class="tabs">
-            <button class="tab-btn active" onclick="openTab('shop')">Магазин</button>
-            <button class="tab-btn" onclick="openTab('relics')">Реликвии</button>
-            <button class="tab-btn" onclick="openTab('prestige')">Вознесение</button>
+            <button class="tab-btn active" onclick="openTab('shop', this)">🏪 Магазин</button>
+            <button class="tab-btn" onclick="openTab('bonuses', this)">⭐ Бонусы</button>
+            <button class="tab-btn" onclick="openTab('prestige', this)">🌟 Престиж</button>
+            <button class="tab-btn ascension-tab" onclick="openTab('ascension', this)">👁️ Вознесение</button>
         </div>
 
         <!-- Магазин -->
         <div id="shop" class="tab-content active">
+            <div class="section-title">🔧 Улучшения клика:</div>
             <div class="item">
-                <div class="item-info"><b>Усиленный клик</b><small>Сила: +<span id="cp-val">1</span></small></div>
+                <div class="item-info"><b>Острый нож</b><small>+1 к силе клика</small></div>
                 <button class="buy-btn" id="b-click" onclick="buy('click')">💰 <span id="c-click">15</span></button>
             </div>
             <div class="item">
-                <div class="item-info"><b>Обезьяна-раб</b><small>+1/сек</small></div>
+                <div class="item-info"><b>Арбузный меч</b><small>+5 к силе клика</small></div>
+                <button class="buy-btn" id="b-click5" onclick="buy('click5')">💰 <span id="c-click5">100</span></button>
+            </div>
+            <div class="item">
+                <div class="item-info"><b>Бахчевой комбайн</b><small>+25 к силе клика</small></div>
+                <button class="buy-btn" id="b-click25" onclick="buy('click25')">💰 <span id="c-click25">500</span></button>
+            </div>
+
+            <div class="section-title">⚡ Автоматизация:</div>
+            <div class="item">
+                <div class="item-info"><b>Енот-сборщик</b><small>+1/сек</small></div>
                 <button class="buy-btn" id="b-auto1" onclick="buy('auto1')">💰 <span id="c-auto1">50</span></button>
             </div>
             <div class="item">
-                <div class="item-info"><b>Банановый завод</b><small>+15/сек</small></div>
+                <div class="item-info"><b>Поливальная машина</b><small>+5/сек</small></div>
+                <button class="buy-btn" id="b-auto5" onclick="buy('auto5')">💰 <span id="c-auto5">250</span></button>
+            </div>
+            <div class="item">
+                <div class="item-info"><b>Арбузная ферма</b><small>+15/сек</small></div>
                 <button class="buy-btn" id="b-auto15" onclick="buy('auto15')">💰 <span id="c-auto15">500</span></button>
+            </div>
+            <div class="item">
+                <div class="item-info"><b>Бахчевая плантация</b><small>+50/сек</small></div>
+                <button class="buy-btn" id="b-auto50" onclick="buy('auto50')">💰 <span id="c-auto50">2500</span></button>
+            </div>
+            <div class="item">
+                <div class="item-info"><b>Арбузная фабрика</b><small>+150/сек</small></div>
+                <button class="buy-btn" id="b-auto150" onclick="buy('auto150')">💰 <span id="c-auto150">10000</span></button>
             </div>
         </div>
 
-        <!-- Реликвии -->
-        <div id="relics" class="tab-content">
-            <p style="font-size: 13px; color: #9ca3af;">Артефакты дают пассивные бонусы навсегда.</p>
-            <div class="item">
-                <div class="item-info"><b>Золотая кожура</b><small>Шанс крита клика 5%</small></div>
-                <button class="buy-btn" id="b-crit" onclick="buyRelic('crit', 2000)">💰 2000</button>
-            </div>
-            <div class="item">
-                <div class="item-info"><b>Древний росток</b><small>Автокликеры на 20% дешевле</small></div>
-                <button class="buy-btn" id="b-sale" onclick="buyRelic('sale', 5000)">💰 5000</button>
+        <!-- Бонусы -->
+        <div id="bonuses" class="tab-content">
+            <p style="font-size: 12px; color: #6ee7b7;">⭐ Постоянные бонусы (не сбрасываются при престиже):</p>
+            
+            <div class="bonus-grid">
+                <div class="bonus-item">
+                    <b>🎯 Крит. удар</b>
+                    <small>10% шанс x5</small>
+                    <button class="buy-btn" id="b-crit" onclick="buyBonus('crit', 2000)" style="margin-top:5px; width:100%;">💰 2000</button>
+                </div>
+                <div class="bonus-item">
+                    <b>💰 Скидка</b>
+                    <small>-20% на авто</small>
+                    <button class="buy-btn" id="b-sale" onclick="buyBonus('sale', 5000)" style="margin-top:5px; width:100%;">💰 5000</button>
+                </div>
+                <div class="bonus-item">
+                    <b>💪 Двойной клик</b>
+                    <small>5% шанс x2</small>
+                    <button class="buy-btn" id="b-double" onclick="buyBonus('double', 3000)" style="margin-top:5px; width:100%;">💰 3000</button>
+                </div>
+                <div class="bonus-item">
+                    <b>🌙 Ночной сбор</b>
+                    <small>+10% к авто</small>
+                    <button class="buy-btn" id="b-night" onclick="buyBonus('night', 8000)" style="margin-top:5px; width:100%;">💰 8000</button>
+                </div>
+                <div class="bonus-item">
+                    <b>🍀 Удача</b>
+                    <small>События чаще</small>
+                    <button class="buy-btn" id="b-lucky" onclick="buyBonus('lucky', 12000)" style="margin-top:5px; width:100%;">💰 12000</button>
+                </div>
+                <div class="bonus-item">
+                    <b>🔨 Кузнец</b>
+                    <small>-15% на клики</small>
+                    <button class="buy-btn" id="b-smith" onclick="buyBonus('smith', 7000)" style="margin-top:5px; width:100%;">💰 7000</button>
+                </div>
+                <div class="bonus-item">
+                    <b>📦 Гигантский урожай</b>
+                    <small>1% шанс x10</small>
+                    <button class="buy-btn" id="b-giant" onclick="buyBonus('giant', 15000)" style="margin-top:5px; width:100%;">💰 15000</button>
+                </div>
+                <div class="bonus-item">
+                    <b>💎 Кристальный плод</b>
+                    <small>+25% ко всему</small>
+                    <button class="buy-btn" id="b-crystal" onclick="buyBonus('crystal', 50000)" style="margin-top:5px; width:100%;">💰 50000</button>
+                </div>
             </div>
         </div>
 
         <!-- Престиж -->
         <div id="prestige" class="tab-content">
             <div class="prestige-box">
-                <h3>Уровень Бога: <span id="god-lvl">0</span></h3>
-                <p>Вознесение сбросит ваш прогресс, но даст +50% к общему доходу навсегда.</p>
-                <button class="buy-btn" id="b-prestige" onclick="ascend()" style="background: white; width: 100%;">ВОЗНЕСТИСЬ</button>
-                <small id="prestige-req" style="display:block; margin-top:10px;">Нужно: 100,000 🍌</small>
+                <h3>🌟 Престиж</h3>
+                <div class="prestige-info">
+                    <div><span>Уровень:</span><span id="god-lvl">0</span></div>
+                    <div><span>Множитель дохода:</span><span id="prestige-mul">x1.0</span></div>
+                    <div><span>Всего арбузов:</span><span id="total-wm">0</span></div>
+                </div>
+                
+                <p style="font-size: 13px; margin: 10px 0;">Сбросьте прогресс и получите <b>+50% к доходу</b> навсегда.</p>
+                <p style="font-size: 12px; color: #fca5a5;">⚠️ Бонусы сохраняются, улучшения сбрасываются</p>
+                <p style="font-size: 13px; color: #c084fc;">💎 Также вы получите <b>кристаллы вознесения</b>!</p>
+                
+                <button class="buy-btn prestige-btn" id="b-prestige" onclick="prestige()">⚡ СОВЕРШИТЬ ПРЕСТИЖ</button>
+                
+                <small style="display:block; margin-top: 12px; color: #fbbf24;">
+                    Цена: <b><span id="prestige-cost">100,000</span></b> 🍉
+                </small>
+                <div class="progress-bar"><div class="progress-fill gold" id="prestige-progress" style="width: 0%;"></div></div>
+                <small style="color: #6ee7b7;" id="prestige-progress-text">0%</small>
+                
+                <small style="display:block; margin-top: 10px; color: #c084fc;">
+                    Награда: <b><span id="crystal-reward">1</span></b> 💎 кристалл(ов)
+                </small>
+            </div>
+        </div>
+
+        <!-- Вознесение -->
+        <div id="ascension" class="tab-content">
+            <div class="ascension-box">
+                <h3>👁️ Божественное Вознесение</h3>
+                <div class="ascension-info">
+                    <div><span>Уровень вознесения:</span><span id="ascension-lvl">0</span></div>
+                    <div><span>Божественный бонус:</span><span id="ascension-bonus">+0%</span></div>
+                    <div><span>Кристаллов доступно:</span><span id="ascension-crystals">0</span> 💎</div>
+                </div>
+                
+                <p style="font-size: 12px; color: #a78bfa;">Вознесение сбрасывает <b>всё</b>, включая престиж, но даёт мощный божественный бонус ко всему доходу.</p>
+                
+                <button class="buy-btn ascension-btn" id="b-ascension" onclick="ascend()">👁️ ВОЗНЕСТИСЬ</button>
+                
+                <small style="display:block; margin-top: 12px; color: #c084fc;">
+                    Цена: <b><span id="ascension-cost">5</span></b> 💎 кристаллов
+                </small>
+                <div class="progress-bar"><div class="progress-fill purple" id="ascension-progress" style="width: 0%;"></div></div>
+                <small style="color: #a78bfa;" id="ascension-progress-text">0%</small>
+            </div>
+            
+            <div class="section-title" style="color: #c084fc; border-color: #4c1d95;">💎 Магазин кристаллов:</div>
+            
+            <div class="item" style="background: #1e1b4b; border-color: #8b5cf6;">
+                <div class="item-info"><b>Вечный урожай</b><small>+10% ко всему доходу (можно много раз)</small></div>
+                <button class="buy-btn crystal-btn" id="b-eternal" onclick="buyCrystalUpgrade('eternal', 2)">💎 2</button>
+            </div>
+            <div class="item" style="background: #1e1b4b; border-color: #8b5cf6;">
+                <div class="item-info"><b>Ускорение роста</b><small>Авто-доход x1.5</small></div>
+                <button class="buy-btn crystal-btn" id="b-speed" onclick="buyCrystalUpgrade('speed', 3)">💎 3</button>
+            </div>
+            <div class="item" style="background: #1e1b4b; border-color: #8b5cf6;">
+                <div class="item-info"><b>Божественный клик</b><small>Сила клика x2</small></div>
+                <button class="buy-btn crystal-btn" id="b-divine" onclick="buyCrystalUpgrade('divine', 5)">💎 5</button>
+            </div>
+            <div class="item" style="background: #1e1b4b; border-color: #8b5cf6;">
+                <div class="item-info"><b>Кристальная аура</b><small>+2.5% к шансу крита</small></div>
+                <button class="buy-btn crystal-btn" id="b-aura" onclick="buyCrystalUpgrade('aura', 8)">💎 8</button>
+            </div>
+            <div class="item" style="background: #1e1b4b; border-color: #8b5cf6;">
+                <div class="item-info"><b>Печать арбузного короля</b><small>-30% цены престижа</small></div>
+                <button class="buy-btn crystal-btn" id="b-king" onclick="buyCrystalUpgrade('king', 10)">💎 10</button>
+            </div>
+            <div class="item" style="background: #1e1b4b; border-color: #8b5cf6;">
+                <div class="item-info"><b>Благословение богов</b><small>+1 доп. кристалл за престиж</small></div>
+                <button class="buy-btn crystal-btn" id="b-blessing" onclick="buyCrystalUpgrade('blessing', 15)">💎 15</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    let g = {
-        bananas: 0,
+    // Дефолтное состояние игры
+    const defaultGame = {
+        watermelons: 0,
         total: 0,
+        crystals: 0,
         click: 1,
         bps: 0,
         prestigeMul: 1,
-        godLvl: 0,
-        relics: { crit: false, sale: false },
-        costs: { click: 15, auto1: 50, auto15: 500 }
+        prestigeLvl: 0,
+        ascensionLvl: 0,
+        ascensionBonus: 0,
+        bonuses: { 
+            crit: false, sale: false, double: false, night: false, 
+            lucky: false, smith: false, giant: false, crystal: false 
+        },
+        crystalUpgrades: {
+            eternal: 0, speed: false, divine: false, aura: false, king: false, blessing: false
+        },
+        costs: { 
+            click: 15, click5: 100, click25: 500,
+            auto1: 50, auto5: 250, auto15: 500, auto50: 2500, auto150: 10000 
+        },
+        bonusPrices: { 
+            crit: 2000, sale: 5000, double: 3000, night: 8000, 
+            lucky: 12000, smith: 7000, giant: 15000, crystal: 50000 
+        }
     };
 
-    // Табы
-    function openTab(name) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(name).classList.add('active');
-        event.target.classList.add('active');
+    let g = JSON.parse(JSON.stringify(defaultGame));
+
+    function getPrestigeCost() {
+        let base = Math.floor(100000 * Math.pow(1.8, g.prestigeLvl));
+        if (g.crystalUpgrades.king) base = Math.floor(base * 0.7);
+        return base;
     }
 
-    // Логика клика
-    document.getElementById('banana').onmousedown = (e) => {
-        let isCrit = g.relics.crit && Math.random() < 0.1;
-        let amount = g.click * g.prestigeMul * (isCrit ? 5 : 1);
+    function getAscensionCost() {
+        return 5 + (g.ascensionLvl * 5);
+    }
+
+    function getCrystalReward() {
+        return 1 + g.prestigeLvl + (g.crystalUpgrades.blessing ? 1 : 0);
+    }
+
+    // Система уведомлений
+    function showNotification(title, message, type = 'prestige') {
+        const container = document.getElementById('notification-container');
+        const notif = document.createElement('div');
+        notif.className = `notification ${type}`;
         
-        g.bananas += amount;
+        let icon = '🌟';
+        if (type === 'ascension') icon = '👁️';
+        if (type === 'error') icon = '⚠️';
+        
+        notif.innerHTML = `
+            <h4>${icon} ${title}</h4>
+            <p>${message}</p>
+        `;
+        
+        container.appendChild(notif);
+        
+        // Автоматически удаляем после анимации
+        setTimeout(() => {
+            if (notif.parentNode) notif.remove();
+        }, 3200);
+        
+        // Можно закрыть по клику
+        notif.addEventListener('click', () => {
+            notif.style.animation = 'fadeOutRight 0.3s ease forwards';
+            setTimeout(() => { if (notif.parentNode) notif.remove(); }, 300);
+        });
+    }
+
+    // Модальное окно сброса
+    function openResetModal() {
+        document.getElementById('reset-modal').classList.add('active');
+    }
+
+    function closeResetModal() {
+        document.getElementById('reset-modal').classList.remove('active');
+    }
+
+    function confirmReset() {
+        localStorage.removeItem('watermelonEvolutionSave_v2');
+        localStorage.removeItem('watermelonEvolutionSave');
+        g = JSON.parse(JSON.stringify(defaultGame));
+        closeResetModal();
+        update();
+        
+        showNotification('Прогресс сброшен', 'Все данные удалены. Начинаем заново!', 'error');
+    }
+
+    document.getElementById('reset-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeResetModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeResetModal();
+    });
+
+    function openTab(name, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active');
+            b.classList.remove('ascension-tab');
+        });
+        document.getElementById(name).classList.add('active');
+        if (btn) {
+            btn.classList.add('active');
+            if (name === 'ascension') btn.classList.add('ascension-tab');
+        }
+    }
+
+    // Клик
+    document.getElementById('watermelon').addEventListener('pointerdown', (e) => {
+        let amount = g.click * g.prestigeMul * (1 + g.ascensionBonus / 100);
+        
+        if (g.bonuses.crystal) amount *= 1.25;
+        if (g.crystalUpgrades.eternal > 0) amount *= (1 + g.crystalUpgrades.eternal * 0.1);
+        if (g.crystalUpgrades.divine) amount *= 2;
+        
+        let isCrit = g.bonuses.crit && Math.random() < (0.1 + (g.crystalUpgrades.aura ? 0.025 : 0));
+        if (isCrit) amount *= 5;
+        
+        let isDouble = g.bonuses.double && Math.random() < 0.05;
+        if (isDouble && !isCrit) amount *= 2;
+        
+        let isGiant = g.bonuses.giant && Math.random() < 0.01;
+        if (isGiant) amount *= 10;
+        
+        g.watermelons += amount;
         g.total += amount;
         
-        showText(e.clientX, e.clientY, (isCrit ? 'CRIT! ' : '+') + Math.floor(amount), isCrit ? '#f87171' : '#facc15');
+        let prefix = '+';
+        let color = '#4ade80';
+        if (isGiant) { prefix = '🌟 МЕГА-УРОЖАЙ! '; color = '#fbbf24'; }
+        else if (isCrit) { prefix = '💥 КРИТ! '; color = '#f87171'; }
+        else if (isDouble) { prefix = '💪 ДВОЙНОЙ! '; color = '#60a5fa'; }
+        
+        showText(e.clientX, e.clientY, prefix + formatNumber(amount), color);
         update();
-    };
+    });
+
+    document.getElementById('watermelon').addEventListener('selectstart', (e) => e.preventDefault());
+
+    function getCost(type) {
+        let baseCost = g.costs[type];
+        if (g.bonuses.sale && type.startsWith('auto')) baseCost = Math.ceil(baseCost * 0.8);
+        if (g.bonuses.smith && type.startsWith('click')) baseCost = Math.ceil(baseCost * 0.85);
+        return baseCost;
+    }
 
     function buy(type) {
-        if (g.bananas >= g.costs[type]) {
-            g.bananas -= g.costs[type];
-            if (type === 'click') { g.click++; g.costs.click = Math.ceil(g.costs.click * 1.5); }
-            if (type === 'auto1') { g.bps += 1; g.costs.auto1 = Math.ceil(g.costs.auto1 * 1.3); }
-            if (type === 'auto15') { g.bps += 15; g.costs.auto15 = Math.ceil(g.costs.auto15 * 1.4); }
+        let cost = getCost(type);
+        if (g.watermelons >= cost) {
+            g.watermelons -= cost;
+            switch(type) {
+                case 'click': g.click += 1; g.costs.click = Math.ceil(g.costs.click * 1.5); break;
+                case 'click5': g.click += 5; g.costs.click5 = Math.ceil(g.costs.click5 * 1.6); break;
+                case 'click25': g.click += 25; g.costs.click25 = Math.ceil(g.costs.click25 * 1.7); break;
+                case 'auto1': g.bps += 1; g.costs.auto1 = Math.ceil(g.costs.auto1 * 1.3); break;
+                case 'auto5': g.bps += 5; g.costs.auto5 = Math.ceil(g.costs.auto5 * 1.35); break;
+                case 'auto15': g.bps += 15; g.costs.auto15 = Math.ceil(g.costs.auto15 * 1.4); break;
+                case 'auto50': g.bps += 50; g.costs.auto50 = Math.ceil(g.costs.auto50 * 1.45); break;
+                case 'auto150': g.bps += 150; g.costs.auto150 = Math.ceil(g.costs.auto150 * 1.5); break;
+            }
             update();
         }
     }
 
-    function buyRelic(name, cost) {
-        if (g.bananas >= cost && !g.relics[name]) {
-            g.bananas -= cost;
-            g.relics[name] = true;
-            document.getElementById('b-'+name).innerText = "КУПЛЕНО";
-            document.getElementById('b-'+name).disabled = true;
+    function buyBonus(name, cost) {
+        if (g.watermelons >= cost && !g.bonuses[name]) {
+            g.watermelons -= cost;
+            g.bonuses[name] = true;
+            updateBonusButtons();
+            update();
+            showNotification('Бонус получен!', 'Новый бонус активирован и больше не сбросится при престиже.', 'prestige');
+        }
+    }
+
+    function buyCrystalUpgrade(name, cost) {
+        if (g.crystals >= cost) {
+            if (name === 'eternal') {
+                g.crystals -= cost;
+                g.crystalUpgrades.eternal++;
+                showNotification('Улучшение куплено!', `Вечный урожай x${g.crystalUpgrades.eternal} (+${g.crystalUpgrades.eternal * 10}% к доходу)`, 'ascension');
+            } else if (!g.crystalUpgrades[name]) {
+                g.crystals -= cost;
+                g.crystalUpgrades[name] = true;
+                showNotification('Улучшение куплено!', 'Новое кристальное улучшение активировано.', 'ascension');
+            } else return;
+            updateCrystalButtons();
+            update();
+        }
+    }
+
+    function prestige() {
+        const cost = getPrestigeCost();
+        if (g.watermelons >= cost) {
+            const reward = getCrystalReward();
+            g.crystals += reward;
+            g.prestigeLvl++;
+            g.prestigeMul += 0.5;
+            
+            g.watermelons = 0;
+            g.bps = 0;
+            g.click = 1;
+            g.costs = { click: 15, click5: 100, click25: 500, auto1: 50, auto5: 250, auto15: 500, auto50: 2500, auto150: 10000 };
+            
+            showNotification(
+                'Престиж совершён!', 
+                `Уровень: <span class="highlight">${g.prestigeLvl}</span> | Множитель: <span class="highlight">x${g.prestigeMul.toFixed(1)}</span> | Кристаллов: <span class="highlight">+${reward}</span> 💎`,
+                'prestige'
+            );
             update();
         }
     }
 
     function ascend() {
-        if (g.bananas >= 100000) {
-            g.godLvl++;
-            g.prestigeMul += 0.5;
-            // Сброс
-            g.bananas = 0;
+        const cost = getAscensionCost();
+        if (g.crystals >= cost) {
+            g.crystals -= cost;
+            g.ascensionLvl++;
+            g.ascensionBonus += 15;
+            
+            g.watermelons = 0;
             g.bps = 0;
             g.click = 1;
-            g.costs = { click: 15, auto1: 50, auto15: 500 };
-            alert("Вы вознеслись! Ваша мощь выросла!");
+            g.prestigeLvl = 0;
+            g.prestigeMul = 1;
+            g.costs = { click: 15, click5: 100, click25: 500, auto1: 50, auto5: 250, auto15: 500, auto50: 2500, auto150: 10000 };
+            
+            showNotification(
+                'Божественное Вознесение!', 
+                `Уровень: <span class="highlight">${g.ascensionLvl}</span> | Бонус: <span class="highlight">+${g.ascensionBonus}%</span> ко всему доходу!`,
+                'ascension'
+            );
             update();
         }
     }
 
-    function update() {
-        document.getElementById('bananas').innerText = Math.floor(g.bananas).toLocaleString();
-        document.getElementById('bps').innerText = (g.bps * g.prestigeMul).toFixed(1);
-        document.getElementById('god-lvl').innerText = g.godLvl;
-        document.getElementById('cp-val').innerText = g.click;
+    function updateBonusButtons() {
+        for (let name in g.bonuses) {
+            const btn = document.getElementById('b-' + name);
+            if (btn) {
+                if (g.bonuses[name]) {
+                    btn.textContent = '✅ Куплено';
+                    btn.disabled = true;
+                    btn.style.background = '#10b981';
+                } else {
+                    btn.textContent = '💰 ' + formatNumber(g.bonusPrices[name]);
+                    btn.disabled = g.watermelons < g.bonusPrices[name];
+                    btn.style.background = '#f87171';
+                }
+            }
+        }
+    }
+
+    function updateCrystalButtons() {
+        const upgrades = [
+            { id: 'eternal', cost: 2, text: '💎 2' },
+            { id: 'speed', cost: 3, text: '💎 3' },
+            { id: 'divine', cost: 5, text: '💎 5' },
+            { id: 'aura', cost: 8, text: '💎 8' },
+            { id: 'king', cost: 10, text: '💎 10' },
+            { id: 'blessing', cost: 15, text: '💎 15' }
+        ];
         
-        // Цены
-        document.getElementById('c-click').innerText = g.costs.click;
-        document.getElementById('c-auto1').innerText = g.costs.auto1;
-        document.getElementById('c-auto15').innerText = g.costs.auto15;
+        upgrades.forEach(u => {
+            const btn = document.getElementById('b-' + u.id);
+            if (btn) {
+                if (u.id === 'eternal') {
+                    btn.textContent = `💎 ${u.cost} (${g.crystalUpgrades.eternal})`;
+                    btn.disabled = g.crystals < u.cost;
+                } else if (g.crystalUpgrades[u.id]) {
+                    btn.textContent = '✅';
+                    btn.disabled = true;
+                    btn.style.background = '#10b981';
+                } else {
+                    btn.textContent = u.text;
+                    btn.disabled = g.crystals < u.cost;
+                    btn.style.background = 'linear-gradient(45deg, #8b5cf6, #7c3aed)';
+                }
+            }
+        });
+    }
 
-        // Блокировка
-        document.getElementById('b-click').disabled = g.bananas < g.costs.click;
-        document.getElementById('b-auto1').disabled = g.bananas < g.costs.auto1;
-        document.getElementById('b-auto15').disabled = g.bananas < g.costs.auto15;
-        document.getElementById('b-prestige').disabled = g.bananas < 100000;
+    function formatNumber(num) {
+        if (num >= 1e15) return (num / 1e15).toFixed(2) + 'Q';
+        if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+        if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+        if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+        if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+        return Math.floor(num).toString();
+    }
 
-        // Ранги
-        const ranks = ["Смертный", "Любитель бананов", "Банановый маг", "Полубог", "Властелин джунглей"];
-        document.getElementById('rank-text').innerText = ranks[Math.min(g.godLvl, 4)];
+    function update() {
+        const ascBonus = 1 + g.ascensionBonus / 100;
+        const eternalBonus = 1 + g.crystalUpgrades.eternal * 0.1;
+        const clickMultiplier = g.prestigeMul * ascBonus * eternalBonus * (g.bonuses.crystal ? 1.25 : 1) * (g.crystalUpgrades.divine ? 2 : 1);
+        const autoMultiplier = g.prestigeMul * ascBonus * eternalBonus * (g.bonuses.crystal ? 1.25 : 1) * (g.bonuses.night ? 1.1 : 1) * (g.crystalUpgrades.speed ? 1.5 : 1);
+        
+        document.getElementById('watermelons').textContent = formatNumber(g.watermelons);
+        document.getElementById('crystals').textContent = formatNumber(g.crystals);
+        document.getElementById('bps').textContent = formatNumber(g.bps * autoMultiplier);
+        document.getElementById('cps').textContent = formatNumber(g.click * clickMultiplier);
+        
+        const prestigeCost = getPrestigeCost();
+        document.getElementById('god-lvl').textContent = g.prestigeLvl;
+        document.getElementById('prestige-mul').textContent = 'x' + g.prestigeMul.toFixed(1);
+        document.getElementById('total-wm').textContent = formatNumber(g.total);
+        document.getElementById('prestige-cost').textContent = formatNumber(prestigeCost);
+        document.getElementById('crystal-reward').textContent = getCrystalReward();
+        document.getElementById('prestige-badge').textContent = '🌟 Престиж x' + g.prestigeMul.toFixed(1);
+        
+        const prestigeProgress = Math.min(100, (g.watermelons / prestigeCost) * 100);
+        document.getElementById('prestige-progress').style.width = prestigeProgress + '%';
+        document.getElementById('prestige-progress-text').textContent = prestigeProgress.toFixed(1) + '%';
+        
+        const ascensionCost = getAscensionCost();
+        document.getElementById('ascension-lvl').textContent = g.ascensionLvl;
+        document.getElementById('ascension-bonus').textContent = '+' + g.ascensionBonus + '%';
+        document.getElementById('ascension-crystals').textContent = formatNumber(g.crystals);
+        document.getElementById('ascension-cost').textContent = ascensionCost;
+        document.getElementById('ascension-badge').textContent = '👑 Вознесение ' + g.ascensionLvl;
+        
+        const ascensionProgress = Math.min(100, (g.crystals / ascensionCost) * 100);
+        document.getElementById('ascension-progress').style.width = ascensionProgress + '%';
+        document.getElementById('ascension-progress-text').textContent = ascensionProgress.toFixed(1) + '%';
+        
+        document.getElementById('c-click').textContent = getCost('click');
+        document.getElementById('c-click5').textContent = getCost('click5');
+        document.getElementById('c-click25').textContent = getCost('click25');
+        document.getElementById('c-auto1').textContent = getCost('auto1');
+        document.getElementById('c-auto5').textContent = getCost('auto5');
+        document.getElementById('c-auto15').textContent = getCost('auto15');
+        document.getElementById('c-auto50').textContent = getCost('auto50');
+        document.getElementById('c-auto150').textContent = getCost('auto150');
+
+        document.getElementById('b-click').disabled = g.watermelons < getCost('click');
+        document.getElementById('b-click5').disabled = g.watermelons < getCost('click5');
+        document.getElementById('b-click25').disabled = g.watermelons < getCost('click25');
+        document.getElementById('b-auto1').disabled = g.watermelons < getCost('auto1');
+        document.getElementById('b-auto5').disabled = g.watermelons < getCost('auto5');
+        document.getElementById('b-auto15').disabled = g.watermelons < getCost('auto15');
+        document.getElementById('b-auto50').disabled = g.watermelons < getCost('auto50');
+        document.getElementById('b-auto150').disabled = g.watermelons < getCost('auto150');
+        document.getElementById('b-prestige').disabled = g.watermelons < prestigeCost;
+        document.getElementById('b-ascension').disabled = g.crystals < ascensionCost;
+        
+        updateBonusButtons();
+        updateCrystalButtons();
+        
+        const ranks = [
+            "Садовод", "Любитель арбузов", "Арбузный маг", "Бахчевой лорд", 
+            "Полубог", "Арбузный бог", "Повелитель арбузов", "Властелин измерения",
+            "Хранитель бахчи", "Арбузный титан", "Божественный арбуз"
+        ];
+        const totalLevel = g.prestigeLvl + g.ascensionLvl * 2;
+        document.getElementById('rank-text').textContent = ranks[Math.min(totalLevel, ranks.length - 1)];
         
         save();
     }
@@ -200,39 +733,94 @@
     function showText(x, y, text, color) {
         const el = document.createElement('div');
         el.className = 'floating-text';
-        el.style.left = x + 'px'; el.style.top = y + 'px';
+        el.style.left = x + 'px'; 
+        el.style.top = y + 'px';
         el.style.color = color;
-        el.innerText = text;
+        el.textContent = text;
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), 800);
+        el.addEventListener('animationend', () => el.remove());
     }
 
-    // Случайные события
+    // События
+    let eventMultiplier = 1;
     setInterval(() => {
-        if (Math.random() > 0.8) {
+        const eventChance = g.bonuses.lucky ? 0.4 : 0.7;
+        if (Math.random() > eventChance) {
             const events = [
-                { t: "Банановый дождь! +100 бананов", a: 100 },
-                { t: "Обезьяны украли бананы! -50", a: -50 },
-                { t: "Солнечный день! Доход x2 на миг", a: 0 }
+                { t: "🍉 Арбузный дождь! +100", a: 100, mul: 1 },
+                { t: "🦝 Еноты украли урожай! -50", a: -50, mul: 1 },
+                { t: "☀️ Солнечный день! Доход x2 на 5 сек", a: 0, mul: 2 },
+                { t: "🌱 Волшебное удобрение! +200", a: 200, mul: 1 },
+                { t: "💫 Арбузный шторм! +500", a: 500, mul: 1, rare: true },
+                { t: "🌈 Радужный урожай! Доход x3 на 3 сек", a: 0, mul: 3, rare: true },
+                { t: "💎 Найден кристалл! +1 💎", a: 0, mul: 1, crystal: 1, rare: true }
             ];
-            const ev = events[Math.floor(Math.random()*events.length)];
-            document.getElementById('event-box').innerText = ev.t;
-            g.bananas = Math.max(0, g.bananas + ev.a);
-            setTimeout(() => document.getElementById('event-box').innerText = "", 3000);
+            
+            const commonEvents = events.filter(e => !e.rare);
+            const rareEvents = events.filter(e => e.rare);
+            const pool = Math.random() < 0.15 ? rareEvents : commonEvents;
+            const ev = pool[Math.floor(Math.random() * pool.length)];
+            
+            document.getElementById('event-box').textContent = ev.t;
+            
+            if (ev.mul > 1) {
+                eventMultiplier = ev.mul;
+                document.getElementById('event-box').style.color = '#4ade80';
+                const duration = ev.mul === 3 ? 3000 : 5000;
+                setTimeout(() => {
+                    eventMultiplier = 1;
+                    document.getElementById('event-box').style.color = '#fbbf24';
+                }, duration);
+            }
+            
+            if (ev.crystal) {
+                g.crystals += ev.crystal;
+            }
+            g.watermelons = Math.max(0, g.watermelons + ev.a);
+            update();
+            
+            if (ev.mul === 1 && !ev.crystal) {
+                setTimeout(() => {
+                    if (eventMultiplier === 1) {
+                        document.getElementById('event-box').textContent = '';
+                    }
+                }, 3000);
+            }
         }
-    }, 10000);
+    }, 8000);
 
     // Автоклик
     setInterval(() => {
         if (g.bps > 0) {
-            g.bananas += (g.bps * g.prestigeMul) / 10;
+            const ascBonus = 1 + g.ascensionBonus / 100;
+            const eternalBonus = 1 + g.crystalUpgrades.eternal * 0.1;
+            const autoMultiplier = g.prestigeMul * ascBonus * eternalBonus * (g.bonuses.crystal ? 1.25 : 1) * (g.bonuses.night ? 1.1 : 1) * (g.crystalUpgrades.speed ? 1.5 : 1) * eventMultiplier;
+            g.watermelons += (g.bps * autoMultiplier) / 10;
             update();
         }
     }, 100);
 
-    function save() { localStorage.setItem('bananaEvolutionSave', JSON.stringify(g)); }
-    const saved = localStorage.getItem('bananaEvolutionSave');
-    if (saved) { g = JSON.parse(saved); update(); }
+    function save() { 
+        try { localStorage.setItem('watermelonEvolutionSave_v2', JSON.stringify(g)); } 
+        catch(e) { console.warn('Ошибка сохранения:', e); }
+    }
+    
+    try {
+        const saved = localStorage.getItem('watermelonEvolutionSave_v2') || localStorage.getItem('watermelonEvolutionSave');
+        if (saved) { 
+            const parsed = JSON.parse(saved);
+            if (typeof parsed.watermelons === 'number') {
+                g = { ...JSON.parse(JSON.stringify(defaultGame)), ...parsed };
+                if (typeof g.crystals !== 'number') g.crystals = 0;
+                if (!g.crystalUpgrades) g.crystalUpgrades = { eternal: 0, speed: false, divine: false, aura: false, king: false, blessing: false };
+                if (!g.ascensionLvl) g.ascensionLvl = 0;
+                if (!g.ascensionBonus) g.ascensionBonus = 0;
+                if (g.godLvl && !g.prestigeLvl) g.prestigeLvl = g.godLvl;
+            }
+        }
+    } catch(e) { console.warn('Ошибка загрузки:', e); }
+    
+    update();
 </script>
 
 </body>
